@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 ggez = { version = "0.9.3" }
 ggegui = { version = "0.3.8" }
+specs = { version = "0.20.0" }

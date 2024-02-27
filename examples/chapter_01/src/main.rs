@@ -1,11 +1,54 @@
-use ggez::{Context, ContextBuilder, GameResult};
+use ggez::{Context, ContextBuilder, GameError, GameResult};
 use ggez::graphics::{self, Color, DrawParam, Quad};
 use ggez::event::{self, EventHandler};
 use ggez::mint::Point2;
 use ggegui::{egui, Gui};
 use ggez::glam::Vec2;
+use ggez::input::keyboard::KeyInput;
+use ggez::winit::event::VirtualKeyCode;
+use specs::{Builder, Component, Join, ReadStorage, RunNow, System, VecStorage, World, WorldExt};
+
+// 创建两个Component
+struct Player {}
+
+impl Component for Player {
+    type Storage = VecStorage<Self>;
+}
+
+struct Name {
+    name: String,
+}
+
+impl Component for Name {
+    type Storage = VecStorage<Self>;
+}
+
+// 创建系统
+struct NamePrintSystem {}
+
+impl<'a> System<'a> for NamePrintSystem {
+    type SystemData = (ReadStorage<'a, Name>, ReadStorage<'a, Player>);
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (name_storage, play_storage) = data;
+        for (name, _player) in (&name_storage, &play_storage).join() {
+            println!("player has name: {:?}", name.name);
+        }
+    }
+}
+
 
 fn main() {
+    let mut world = World::new();
+    // 注册Component
+    world.register::<Player>();
+    world.register::<Name>();
+    // 创建实体
+    world.create_entity()
+        .with(Player {})
+        .with(Name { name: "Tom".to_string() })
+        .build();
+
     let (ctx, event_loop) =
         ContextBuilder::new("my_game", "Cool Game Author")
             .build()
@@ -14,6 +57,7 @@ fn main() {
         x: 0,
         to_right: true,
         gui: Gui::new(&ctx),
+        world,
     };
     event::run(ctx, event_loop, my_game);
 }
@@ -22,6 +66,7 @@ struct MyGame {
     x: i32,
     to_right: bool,
     gui: Gui,
+    world: World,
 }
 
 impl EventHandler for MyGame {
@@ -75,5 +120,18 @@ impl EventHandler for MyGame {
         );
         // 提交绘图
         canvas.finish(ctx)
+    }
+
+    fn key_down_event(&mut self, _ctx: &mut Context, input: KeyInput, _repeated: bool) -> Result<(), GameError> {
+        if let Some(keycode) = input.keycode {
+            if keycode == VirtualKeyCode::Return {
+                // 如果按下回车，则将“名字打印系统”执行一次
+                let mut name_print_system = NamePrintSystem {};
+                name_print_system.run_now(&self.world);
+                // 并进行一次ECS系统的数据更新
+                self.world.maintain();
+            }
+        }
+        Ok(())
     }
 }
