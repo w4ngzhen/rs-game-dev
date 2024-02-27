@@ -2,6 +2,8 @@ use ggez::{Context, ContextBuilder, GameResult};
 use ggez::graphics::{self, Color, DrawParam, Quad};
 use ggez::event::{self, EventHandler};
 use ggez::mint::Point2;
+use ggegui::{egui, Gui};
+use ggez::glam::Vec2;
 
 fn main() {
     let (ctx, event_loop) =
@@ -10,7 +12,8 @@ fn main() {
             .expect("error");
     let my_game = MyGame {
         x: 0,
-        to_right: true
+        to_right: true,
+        gui: Gui::new(&ctx),
     };
     event::run(ctx, event_loop, my_game);
 }
@@ -18,6 +21,7 @@ fn main() {
 struct MyGame {
     x: i32,
     to_right: bool,
+    gui: Gui,
 }
 
 impl EventHandler for MyGame {
@@ -43,6 +47,15 @@ impl EventHandler for MyGame {
                 self.x = next_x;
             }
         }
+        // ggegui更新逻辑
+        let gui_ctx = self.gui.ctx();
+        egui::Window::new("Title").show(&gui_ctx, |ui| {
+            ui.label("label");
+            if ui.button("button").clicked() {
+                println!("button clicked");
+            }
+        });
+        self.gui.update(_ctx);
         // OK
         Ok(())
     }
@@ -55,6 +68,11 @@ impl EventHandler for MyGame {
             .scale(Point2::from([20.0, 20.0]))
             .color(Color::from_rgb(0xFF, 0, 0));
         canvas.draw(&Quad, draw_param);
+        // GUI绘制
+        canvas.draw(
+            &self.gui,
+            DrawParam::default().dest(Vec2::ZERO),
+        );
         // 提交绘图
         canvas.finish(ctx)
     }
