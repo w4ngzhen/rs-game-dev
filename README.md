@@ -9,5 +9,6 @@
 项目根目录运行
 
 ```bash
-cargo run --packages chapter_01
+# chapter_01 可以替换任意一章
+cargo run --package chapter_01
 ```
